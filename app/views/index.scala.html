@@ -1,0 +1,21 @@
+@(xs: List[models.Person], count: Long)
+
+<p>PersonCount: @count</p>
+
+<p>
+@if(xs.isEmpty) {
+    List is empty <br/>
+} else {
+    <ul>
+    @xs.map { p =>
+        <li>@p</li>
+    }
+    </ul>
+}
+</p>
+<hr/>
+<form action="@routes.Application.postUser()" method="post">
+    name: <input type="text" name="name" value="foo"/> <br/>
+    age: <input type="text" name="age" value="42"/> <br/>
+    <button type="submit">Add User</button>
+</form>

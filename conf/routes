@@ -1,0 +1,7 @@
+GET         /                 controllers.Application.index
+POST        /                 controllers.Application.postUser
+
+GET         /users            controllers.Application.getUsers
+GET         /users/count      controllers.Application.getUserCount
+POST        /users            controllers.Application.addUser
+GET         /users/:id        controllers.Application.getUserById(id: String)
