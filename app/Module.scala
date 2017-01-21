@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
-import actors.{ AllPersonsService, PersonCounter, PersonEntity }
+import javax.inject.Named
+
+import actors.{ AllPersonsService, EventSubscriber, PersonCounter, PersonEntity }
 import akka.actor.{ ActorRef, ActorSystem, PoisonPill, Props }
+import akka.cluster.pubsub.DistributedPubSub
 import akka.cluster.sharding.{ ClusterSharding, ClusterShardingSettings }
 import akka.cluster.singleton.{ ClusterSingletonManager, ClusterSingletonManagerSettings, ClusterSingletonProxy, ClusterSingletonProxySettings }
 import akka.util.Timeout
@@ -31,6 +34,12 @@ object Module {
 
 class Module extends AbstractModule with AkkaGuiceSupport {
   override def configure(): Unit = {
+    bindActor[EventSubscriber]("pub-sub-event-subscriber")
+
+    bind(classOf[ActorRef])
+      .annotatedWith(Names.named("pub-sub-mediator"))
+      .toProvider(classOf[DistPubSubProvider])
+      .asEagerSingleton()
 
     bind(classOf[ActorRef])
       .annotatedWith(Names.named("all-persons-service"))
@@ -51,6 +60,12 @@ class Module extends AbstractModule with AkkaGuiceSupport {
   }
 }
 
+class DistPubSubProvider @Inject() (system: ActorSystem) extends Provider[ActorRef] {
+  override def get(): ActorRef = {
+    DistributedPubSub(system).mediator
+  }
+}
+
 class PersonShardRegionProvider @Inject() (system: ActorSystem) extends Provider[ActorRef] {
   override def get(): ActorRef = {
     ClusterSharding(system).start(
@@ -62,9 +77,9 @@ class PersonShardRegionProvider @Inject() (system: ActorSystem) extends Provider
   }
 }
 
-class PersonCounterSingletonManager @Inject() (system: ActorSystem) extends AbstractSingletonManager(system, "person-counter", PersonCounter.props)
+class PersonCounterSingletonManager @Inject() (system: ActorSystem, @Named("pub-sub-mediator") mediator: ActorRef) extends AbstractSingletonManager(system, "person-counter", PersonCounter.props(mediator))
 
-class AllPersonsSingletonManager @Inject() (system: ActorSystem) extends AbstractSingletonManager(system, "all-person", AllPersonsService.props)
+class AllPersonsSingletonManager @Inject() (system: ActorSystem, @Named("pub-sub-mediator") mediator: ActorRef) extends AbstractSingletonManager(system, "all-person", AllPersonsService.props(mediator))
 
 abstract class AbstractSingletonManager(system: ActorSystem, name: String, singletonProps: Props) extends Provider[ActorRef] {
   final val SingletonManagerName = s"$name-singleton-manager"

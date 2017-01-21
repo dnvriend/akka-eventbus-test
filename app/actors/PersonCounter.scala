@@ -17,27 +17,30 @@
 package actors
 
 import actors.PersonCounter.{ GetPersonCountRequest, GetPersonCountResponse }
-import akka.actor.{ Actor, Props }
+import akka.actor.{ Actor, ActorLogging, ActorRef, Props }
+import akka.cluster.pubsub.DistributedPubSubMediator.{ Subscribe, SubscribeAck }
 import akka.event.LoggingReceive
-import domains.{ Event, PersonCreated }
+import domains.PersonCreated
 
 object PersonCounter {
   case object GetPersonCountRequest
   case class GetPersonCountResponse(count: Long)
 
-  def props: Props = Props[PersonCounter]
+  def props(mediator: ActorRef): Props = Props(classOf[PersonCounter], mediator)
 }
 
-class PersonCounter extends Actor {
+class PersonCounter(mediator: ActorRef) extends Actor with ActorLogging {
   override def preStart(): Unit = {
     // please note that the eventStream is only for *this* actor system
     // so events won't be propagated in clustered mode!
-    context.system.eventStream.subscribe(self, classOf[Event])
+    //    context.system.eventStream.subscribe(self, classOf[Event])
+    mediator ! Subscribe("events", self)
   }
   override def receive: Receive = personCount(0)
 
   def personCount(numOfPersons: Long): Receive = LoggingReceive {
     case e: PersonCreated      => context.become(personCount(numOfPersons + 1))
     case GetPersonCountRequest => sender() ! GetPersonCountResponse(numOfPersons)
+    case msg: SubscribeAck     => log.info("Subscribed to dist-pub/sub topic: {}", msg)
   }
 }

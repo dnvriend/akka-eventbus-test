@@ -16,7 +16,8 @@
 
 package actors
 
-import akka.actor.{ Actor, ActorLogging, Props }
+import akka.actor.{ Actor, ActorLogging, ActorRef, Props }
+import akka.cluster.pubsub.DistributedPubSubMediator.{ Subscribe, SubscribeAck }
 import akka.event.LoggingReceive
 import domains.{ Event, PersonCreated }
 
@@ -30,15 +31,16 @@ object AllPersonsService {
   // service owned
   case class Person(id: String, name: String, age: String)
 
-  def props: Props = Props[AllPersonsService]
+  def props(mediator: ActorRef): Props = Props(classOf[AllPersonsService], mediator)
 }
 
-class AllPersonsService extends Actor with ActorLogging {
+class AllPersonsService(mediator: ActorRef) extends Actor with ActorLogging {
   import AllPersonsService._
   override def preStart(): Unit = {
     // please note that the eventStream is only for *this* actor system
     // so events won't be propagated in clustered mode!
-    context.system.eventStream.subscribe(self, classOf[Event])
+    //    context.system.eventStream.subscribe(self, classOf[Event])
+    mediator ! Subscribe("events", self)
   }
 
   override def receive: Receive = people(List.empty[Person])
@@ -55,5 +57,7 @@ class AllPersonsService extends Actor with ActorLogging {
 
     case GetPersonByIdRequest(id) =>
       sender() ! GetPersonByIdResponse(xs.find(_.id == id))
+
+    case msg: SubscribeAck => log.info("Subscribed to dist-pub/sub topic: {}", msg)
   }
 }

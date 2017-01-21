@@ -16,11 +16,19 @@
 
 package eventadapters
 
-import akka.actor.ExtendedActorSystem
+import actors.EventPublisher
+import akka.actor.{ ActorRef, ExtendedActorSystem, Props }
+import akka.cluster.pubsub.DistributedPubSub
 import akka.persistence.journal.{ EventAdapter, EventSeq }
 import domains.Event
 
+import scala.concurrent.ExecutionContext
+
 class PersonEventAdapter(system: ExtendedActorSystem) extends EventAdapter {
+  implicit val ec: ExecutionContext = system.dispatcher
+  val mediator: ActorRef = DistributedPubSub(system).mediator
+  val eventPublisher: ActorRef = system.actorOf(Props(classOf[EventPublisher], mediator))
+
   override def manifest(event: Any): String = ""
 
   override def toJournal(event: Any): Any = {
@@ -28,7 +36,8 @@ class PersonEventAdapter(system: ExtendedActorSystem) extends EventAdapter {
       case event: Event =>
         // please note that the eventStream is only for *this* actor system
         // so events won't be propagated in clustered mode!
-        system.eventStream.publish(event)
+        //        system.eventStream.publish(event)
+        eventPublisher ! event
         event
     }
   }
