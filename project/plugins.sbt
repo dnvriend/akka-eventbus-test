@@ -1,5 +1,5 @@
 // to enable the playframework
-addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.5.10")
+addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.5.12")
 
 // enable conductr integration
 // https://github.com/typesafehub/sbt-conductr

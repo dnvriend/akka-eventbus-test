@@ -20,14 +20,16 @@ import java.util.UUID
 import javax.inject.Inject
 
 import akka.actor.ActorSystem
+import com.typesafe.conductr.bundlelib.scala._
 import models.Person
 import org.slf4j.{ Logger, LoggerFactory }
 import play.api.data.Forms._
 import play.api.data._
 import play.api.libs.json.{ Json, Writes }
-import play.api.mvc.{ Action, Controller, Result }
+import play.api.mvc.{ Action, Call, Controller, Result }
 import repositories.PersonRepository
 
+import scala.compat.Platform
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.Try
 
@@ -47,18 +49,26 @@ class Application @Inject() (system: ActorSystem, personRepository: PersonReposi
     )(User.apply)(User.unapply)
   )
 
+  def getUrl(call: Call): String = {
+    val formUrl: String = call.url
+    val res = LocationService.getLookupUrl("/eventbus", URL("http://localhost:9000/"))
+    println("LocationService.getLookupUrl: " + res)
+    if (Env.isRunByConductR) s"/eventbus$formUrl" else formUrl
+  }
+
   def index = Action.async {
     for {
+      formUrl <- Future.fromTry(Try(getUrl(routes.Application.postUser())))
       count <- personRepository.getPersonCount
       xs <- personRepository.getPersons
-    } yield Ok(views.html.index(xs, count))
+    } yield Ok(views.html.index(xs, count, formUrl))
   }
 
   def postUser = Action.async { implicit request =>
     for {
       user <- Future.fromTry(Try(userForm.bindFromRequest.get))
       _ <- personRepository.createPerson(randomId, user.name, user.age)
-    } yield Redirect(routes.Application.index())
+    } yield Redirect(getUrl(routes.Application.index()))
   }
 
   def getUsers = Action.async {
@@ -82,6 +92,11 @@ class Application @Inject() (system: ActorSystem, personRepository: PersonReposi
 
   def getUserById(id: String) = Action.async {
     personRepository.getPersonById(id).map(x => maybeHandler(x))
+  }
+
+  def settings = Action {
+    import scala.collection.JavaConversions._
+    Ok(Json.toJson(System.getProperties.toMap))
   }
 
   def maybeHandler[A: Writes](maybe: Option[A]): Result =

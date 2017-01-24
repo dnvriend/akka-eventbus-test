@@ -1,4 +1,4 @@
-@(xs: List[models.Person], count: Long)
+@(xs: List[models.Person], count: Long, formUrl: String)
 
 <p>PersonCount: @count</p>
 
@@ -14,7 +14,7 @@
 }
 </p>
 <hr/>
-<form action="@routes.Application.postUser()" method="post">
+<form action="@formUrl" method="post">
     name: <input type="text" name="name" value="foo"/> <br/>
     age: <input type="text" name="age" value="42"/> <br/>
     <button type="submit">Add User</button>

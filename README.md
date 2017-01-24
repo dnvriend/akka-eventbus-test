@@ -6,7 +6,8 @@ small study project on play in combination with conductr conductr
 - Install Docker for Mac
 - Get a free Lightbend developer account
 - Read the [getting started page](https://www.lightbend.com/product/conductr/developer)
-- Read the [conductr documentation](https://conductr.lightbend.com/)
+- Read the [v1 conductr documentation](https://conductr.lightbend.com/docs/1.1.x)
+- Read the [v2 conductr documentation](https://conductr.lightbend.com/docs/2.0.x)
 
 ## Quick install guide
 Do the following:
@@ -16,12 +17,29 @@ sudo pip3 install conductr-cli
 
 sandbox run 1.1.13 --feature visualization --nr-of-containers 3
 
+// sandbox v2
+
+sandbox run 2.0.0-ea.1 --feature visualization --nr-of-containers 3
+
 open http://localhost:9909/
 ```
+
+## Overview of all sandboxes
+The sandboxes are located in [bintray](https://bintray.com/typesafe/registry-for-subscribers-only/conductr%3Aconductr):
+
+- 1.1.13
+- 1.1.12
+- 2.0.0-ea.1
+- 1.1.11
+- 1.1.10
 
 ## SBT and conductr
 The project already contains the necessary [sbt-conductr plugin](https://github.com/typesafehub/sbt-conductr), please
 read up on the plugin and the available sbt commands.
+
+## conductr example project
+The conductr documentation is running with conductr so for a [configuration](https://github.com/typesafehub/project-doc/blob/master/build.sbt#L53)
+that contains all the settings.
 
 ## Conductr configuration
 Conductr is configured as follows:
@@ -78,3 +96,28 @@ The sandbox can be stopped with the following commands:
 ```bash
 sandbox stop
 ```
+
+## Notes
+Ed Callahan @edwardcallahan
+@dnvriend Thanks for trying ConductR!
+re: reverse lookup of play routes on ConductR
+In 1.1 the easiest thing to do is to use host name endpoint as in
+https://github.com/typesafehub/project-doc/blob/master/build.sbt#L53
+In 2.0.x, the request ACL allows for configuration of this for full options
+http://conductr.lightbend.com/docs/2.0.x/AclConfiguration
+
+## Env
+`com.typesafe.conductr.bundlelib.play.api.Env`: Provides functions to set up the Play environment in accordance with what ConductR provides.
+
+## ConnectionContext
+`com.typesafe.conductr.lib.play.api.ConnectionContext`:
+When performing Play.WS connections, this is the connection context to use
+
+## LocationCache
+`com.typesafe.conductr.bundlelib.scala.LocationCache`: Looking up serviceNames. Returns an URI
+
+## LocationService
+`com.typesafe.conductr.bundlelib.play.api.LocationService`: LocationService used to look up services using the Typesafe ConductR Service Locator.
+
+## StatusService
+`com.typesafe.conductr.bundlelib.play.api.StatusService`: StatusService used to communicate the bundle status to the Typesafe ConductR Status Server.
